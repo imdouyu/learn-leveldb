@@ -11,6 +11,7 @@
 // The FALLTHROUGH_INTENDED macro can be used to annotate implicit fall-through
 // between switch labels. The real definition should be provided externally.
 // This one is a fallback version for unsupported compilers.
+// C++ 17 引入了fallthrough属性 https://en.cppreference.com/w/cpp/language/attributes/fallthrough
 #ifndef FALLTHROUGH_INTENDED
 #define FALLTHROUGH_INTENDED \
   do {                       \

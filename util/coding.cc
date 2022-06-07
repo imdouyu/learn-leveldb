@@ -20,9 +20,14 @@ void PutFixed64(std::string* dst, uint64_t value) {
 
 char* EncodeVarint32(char* dst, uint32_t v) {
   // Operate on characters as unsigneds
+  // 对于int32的变长编码，在一个byte内，低7位存储数，最高位为flag，1表示后续字节依旧是数的一部分，0表示截止
+  // 变长编码int32最少仅需要1个字节，最多需要5个字节
+  // 5 * 8- 5(flag) > 32
   uint8_t* ptr = reinterpret_cast<uint8_t*>(dst);
   static const int B = 128;
   if (v < (1 << 7)) {
+    // *ptr = v;
+    // ptr++;
     *(ptr++) = v;
   } else if (v < (1 << 14)) {
     *(ptr++) = v | B;
@@ -53,6 +58,7 @@ void PutVarint32(std::string* dst, uint32_t v) {
 }
 
 char* EncodeVarint64(char* dst, uint64_t v) {
+  // 10 * 8 - 10(flag) > 64
   static const int B = 128;
   uint8_t* ptr = reinterpret_cast<uint8_t*>(dst);
   while (v >= B) {
@@ -70,6 +76,7 @@ void PutVarint64(std::string* dst, uint64_t v) {
 }
 
 void PutLengthPrefixedSlice(std::string* dst, const Slice& value) {
+  // 先写入字符串长度，后写入字符串数据
   PutVarint32(dst, value.size());
   dst->append(value.data(), value.size());
 }
@@ -86,6 +93,8 @@ int VarintLength(uint64_t v) {
 const char* GetVarint32PtrFallback(const char* p, const char* limit,
                                    uint32_t* value) {
   uint32_t result = 0;
+  // *p = "\x80\x80\x80\x80\x01"
+  // result = 268435456
   for (uint32_t shift = 0; shift <= 28 && p < limit; shift += 7) {
     uint32_t byte = *(reinterpret_cast<const uint8_t*>(p));
     p++;
@@ -108,6 +117,7 @@ bool GetVarint32(Slice* input, uint32_t* value) {
   if (q == nullptr) {
     return false;
   } else {
+    // (?): 为什么这里要创建一个新的Slice
     *input = Slice(q, limit - q);
     return true;
   }
@@ -131,6 +141,7 @@ const char* GetVarint64Ptr(const char* p, const char* limit, uint64_t* value) {
 }
 
 bool GetVarint64(Slice* input, uint64_t* value) {
+  // 64位同32位，只是GetVarint64Ptr()对于小于128的数字没有特殊处理
   const char* p = input->data();
   const char* limit = p + input->size();
   const char* q = GetVarint64Ptr(p, limit, value);
@@ -144,6 +155,7 @@ bool GetVarint64(Slice* input, uint64_t* value) {
 
 bool GetLengthPrefixedSlice(Slice* input, Slice* result) {
   uint32_t len;
+  // 首先读取Slice的长度，然后读取Slice数据
   if (GetVarint32(input, &len) && input->size() >= len) {
     *result = Slice(input->data(), len);
     input->remove_prefix(len);

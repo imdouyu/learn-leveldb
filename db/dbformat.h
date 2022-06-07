@@ -58,6 +58,7 @@ enum ValueType { kTypeDeletion = 0x0, kTypeValue = 0x1 };
 // and the value type is embedded as the low 8 bits in the sequence
 // number in internal keys, we need to use the highest-numbered
 // ValueType, not the lowest).
+// sequence number的低8位编码为value type
 static const ValueType kValueTypeForSeek = kTypeValue;
 
 typedef uint64_t SequenceNumber;
@@ -65,7 +66,7 @@ typedef uint64_t SequenceNumber;
 // We leave eight bits empty at the bottom so a type and sequence#
 // can be packed together into 64-bits.
 static const SequenceNumber kMaxSequenceNumber = ((0x1ull << 56) - 1);
-
+// InternalKey = user key + sequence number(7byte) + value type(1byte)
 struct ParsedInternalKey {
   Slice user_key;
   SequenceNumber sequence;
@@ -177,6 +178,7 @@ inline bool ParseInternalKey(const Slice& internal_key,
   result->sequence = num >> 8;
   result->type = static_cast<ValueType>(c);
   result->user_key = Slice(internal_key.data(), n - 8);
+  // (?): 为什么这里不直接返回true
   return (c <= static_cast<uint8_t>(kTypeValue));
 }
 
@@ -209,9 +211,11 @@ class LookupKey {
   //                                    <-- end_
   // The array is a suitable MemTable key.
   // The suffix starting with "userkey" can be used as an InternalKey.
+  // LookupKey = length of InternalKey + InternalKey(user key + sequence number(7byte) + value type(1byte))
   const char* start_;
   const char* kstart_;
   const char* end_;
+  // (?): 200这个大小是怎么定的呢
   char space_[200];  // Avoid allocation for short keys
 };
 

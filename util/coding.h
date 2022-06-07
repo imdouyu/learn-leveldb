@@ -3,7 +3,7 @@
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 //
 // Endian-neutral encoding:
-// * Fixed-length numbers are encoded with least-significant byte first
+// * Fixed-length numbers are encoded with least-significant byte first(小端法)
 // * In addition we support variable length "varint" encoding
 // * Strings are encoded prefixed by their length in varint format
 
@@ -108,6 +108,7 @@ const char* GetVarint32PtrFallback(const char* p, const char* limit,
 inline const char* GetVarint32Ptr(const char* p, const char* limit,
                                   uint32_t* value) {
   if (p < limit) {
+    // 当result < 128, 直接return p + 1;
     uint32_t result = *(reinterpret_cast<const uint8_t*>(p));
     if ((result & 128) == 0) {
       *value = result;

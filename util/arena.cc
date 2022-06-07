@@ -17,6 +17,9 @@ Arena::~Arena() {
   }
 }
 
+// 对于 > 1kB的内存空间请求，分配实际需要的大小空间，并将首地址加入blocks
+// 对于 <= 1kB的请求，若当前块剩余空间不能满足，则分配新的4kB，
+// 这样会造成一个问题：当前块剩余空间被浪费了
 char* Arena::AllocateFallback(size_t bytes) {
   if (bytes > kBlockSize / 4) {
     // Object is more than a quarter of our block size.  Allocate it separately
@@ -43,7 +46,9 @@ char* Arena::AllocateAligned(size_t bytes) {
   size_t slop = (current_mod == 0 ? 0 : align - current_mod);
   size_t needed = bytes + slop;
   char* result;
+  // 确保在当前块的剩余空间中的对齐，有malloc分配的内存空间总是对齐的
   if (needed <= alloc_bytes_remaining_) {
+    // result
     result = alloc_ptr_ + slop;
     alloc_ptr_ += needed;
     alloc_bytes_remaining_ -= needed;
