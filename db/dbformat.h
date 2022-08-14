@@ -193,7 +193,7 @@ class LookupKey {
   LookupKey& operator=(const LookupKey&) = delete;
 
   ~LookupKey();
-
+  // leveldb中的三种key: memtable key(LookupKey), internal key, user key 
   // Return a key suitable for lookup in a MemTable.
   Slice memtable_key() const { return Slice(start_, end_ - start_); }
 

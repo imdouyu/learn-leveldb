@@ -116,6 +116,7 @@ bool InternalFilterPolicy::KeyMayMatch(const Slice& key, const Slice& f) const {
 }
 
 LookupKey::LookupKey(const Slice& user_key, SequenceNumber s) {
+  // LookupKey = length of InternalKey + InternalKey(user key + sequence number(7byte) + value type(1byte))
   size_t usize = user_key.size();
   // 13: int32的变长存储最多需要5个字节 + sequence number(7byte) + value type(1byte)
   size_t needed = usize + 13;  // A conservative estimate

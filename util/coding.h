@@ -20,10 +20,14 @@
 namespace leveldb {
 
 // Standard Put... routines append to a string
+// 将value编码为定长格式, dst[0]...dst[3], 指针不移动
 void PutFixed32(std::string* dst, uint32_t value);
+// 将value编码为定长格式, dst[0]...dst[7]
 void PutFixed64(std::string* dst, uint64_t value);
+// 将value编码为变长格式, 追加到dst, 移动指针
 void PutVarint32(std::string* dst, uint32_t value);
 void PutVarint64(std::string* dst, uint64_t value);
+// 将value[value.size, value.data]编码后追加到dst
 void PutLengthPrefixedSlice(std::string* dst, const Slice& value);
 
 // Standard Get... routines parse a value from the beginning of a Slice

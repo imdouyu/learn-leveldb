@@ -14,7 +14,7 @@ namespace leveldb {
 static Slice GetLengthPrefixedSlice(const char* data) {
   uint32_t len;
   const char* p = data;
-  // *p指向的字符串长度是可能小于5的
+  // p指向的字符串长度是可能小于5的
   p = GetVarint32Ptr(p, p + 5, &len);  // +5: we assume "p" is not corrupted
   return Slice(p, len);
 }
@@ -37,6 +37,7 @@ int MemTable::KeyComparator::operator()(const char* aptr,
 // Encode a suitable internal key target for "target" and return it.
 // Uses *scratch as scratch space, and the returned pointer will point
 // into this scratch space.
+// LookupKey
 static const char* EncodeKey(std::string* scratch, const Slice& target) {
   scratch->clear();
   PutVarint32(scratch, target.size());

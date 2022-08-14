@@ -118,6 +118,8 @@ bool GetVarint32(Slice* input, uint32_t* value) {
     return false;
   } else {
     // (?): 为什么这里要创建一个新的Slice
+    // 截断完成解析的value
+    // routines parse a value from the beginning of a Slice and advance the slice past the parsed value.
     *input = Slice(q, limit - q);
     return true;
   }
@@ -141,7 +143,7 @@ const char* GetVarint64Ptr(const char* p, const char* limit, uint64_t* value) {
 }
 
 bool GetVarint64(Slice* input, uint64_t* value) {
-  // 64位同32位，只是GetVarint64Ptr()对于小于128的数字没有特殊处理
+  // 64位同32位解析
   const char* p = input->data();
   const char* limit = p + input->size();
   const char* q = GetVarint64Ptr(p, limit, value);
