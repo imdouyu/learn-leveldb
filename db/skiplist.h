@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+// memtable的底层数据结构skiplist
 #ifndef STORAGE_LEVELDB_DB_SKIPLIST_H_
 #define STORAGE_LEVELDB_DB_SKIPLIST_H_
 
@@ -181,6 +182,7 @@ typename SkipList<Key, Comparator>::Node* SkipList<Key, Comparator>::NewNode(
     const Key& key, int height) {
   char* const node_memory = arena_->AllocateAligned(
       sizeof(Node) + sizeof(std::atomic<Node*>) * (height - 1));
+  // placement new: 不额外分配内存空间, 而是在用户指定的内存地址(node_memory)调用构造函数构造对象(Node(key))
   return new (node_memory) Node(key);
 }
 
@@ -300,7 +302,8 @@ SkipList<Key, Comparator>::FindLessThan(const Key& key) const {
 }
 
 template <typename Key, class Comparator>
-typename SkipList<Key, Comparator>::Node* SkipList<Key, Comparator>::FindLast()
+typename SkipList<Key, Comparator>::Node* // return type
+SkipList<Key, Comparator>::FindLast()
     const {
   Node* x = head_;
   int level = GetMaxHeight() - 1;

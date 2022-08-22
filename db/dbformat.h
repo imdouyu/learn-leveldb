@@ -102,6 +102,7 @@ inline Slice ExtractUserKey(const Slice& internal_key) {
 // the user key portion and breaks ties by decreasing sequence number.
 class InternalKeyComparator : public Comparator {
  private:
+  // 实际初始化为BytewiseComparatorImpl
   const Comparator* user_comparator_;
 
  public:

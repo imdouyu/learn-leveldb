@@ -53,7 +53,7 @@ int InternalKeyComparator::Compare(const Slice& akey, const Slice& bkey) const {
   if (r == 0) {
     const uint64_t anum = DecodeFixed64(akey.data() + akey.size() - 8);
     const uint64_t bnum = DecodeFixed64(bkey.data() + bkey.size() - 8);
-    // sequence倒序
+    // sequence倒序, 序列号大的key对应的数据新, 对应的internalkey小
     if (anum > bnum) {
       r = -1;
     } else if (anum < bnum) {

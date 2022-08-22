@@ -12,7 +12,7 @@
 namespace leveldb {
 
 class Slice;
-
+// 全序关系
 // A Comparator object provides a total order across slices that are
 // used as keys in an sstable or a database.  A Comparator implementation
 // must be thread-safe since leveldb may invoke its methods concurrently

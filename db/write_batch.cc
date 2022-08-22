@@ -92,6 +92,7 @@ SequenceNumber WriteBatchInternal::Sequence(const WriteBatch* b) {
 }
 
 void WriteBatchInternal::SetSequence(WriteBatch* b, SequenceNumber seq) {
+  // 这里不用考虑ValueType吗?
   EncodeFixed64(&b->rep_[0], seq);
 }
 
