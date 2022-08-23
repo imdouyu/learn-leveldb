@@ -31,6 +31,7 @@ class LEVELDB_EXPORT Cache;
 // of Cache uses a least-recently-used eviction policy.
 LEVELDB_EXPORT Cache* NewLRUCache(size_t capacity);
 
+// Cache为抽象类, 所有纯虚函数均需要在子类中定义实现方法
 class LEVELDB_EXPORT Cache {
  public:
   Cache() = default;

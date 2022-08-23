@@ -38,10 +38,13 @@ namespace {
 // when they detect an element in the cache acquiring or losing its only
 // external reference.
 
+// LRU = HandleTable + circular doubly linked list
+
 // An entry is a variable length heap-allocated structure.  Entries
 // are kept in a circular doubly linked list ordered by access time.
 struct LRUHandle {
   void* value;
+  // 回调函数
   void (*deleter)(const Slice&, void* value);
   LRUHandle* next_hash;
   LRUHandle* next;
@@ -51,6 +54,8 @@ struct LRUHandle {
   bool in_cache;     // Whether entry is in the cache.
   uint32_t refs;     // References, including cache reference, if present.
   uint32_t hash;     // Hash of key(); used for fast sharding and comparisons
+  // 占位符, 如果申明为指针类型占用8个字节, 长度为1的char数组仅占一个字节 
+  // 做15445lab时有类似的操作-弹性数组, 类的最后一个成员变量定义为MappingType array_[0]; 根据实际分配的空间决定array_的大小
   char key_data[1];  // Beginning of key
 
   Slice key() const {
@@ -105,14 +110,18 @@ class HandleTable {
  private:
   // The table consists of an array of buckets where each bucket is
   // a linked list of cache entries that hash into the bucket.
+  // 哈希表长度
   uint32_t length_;
+  // 实际存储元素个数
   uint32_t elems_;
+  // 链地址法解决哈希冲突
   LRUHandle** list_;
 
   // Return a pointer to slot that points to a cache entry that
   // matches key/hash.  If there is no such cache entry, return a
   // pointer to the trailing slot in the corresponding linked list.
   LRUHandle** FindPointer(const Slice& key, uint32_t hash) {
+    // hash & (length_ - 1) == hash % length_
     LRUHandle** ptr = &list_[hash & (length_ - 1)];
     while (*ptr != nullptr && ((*ptr)->hash != hash || key != (*ptr)->key())) {
       ptr = &(*ptr)->next_hash;
@@ -122,9 +131,11 @@ class HandleTable {
 
   void Resize() {
     uint32_t new_length = 4;
+    // 实际存储的元素数量超过4时, 扩容以2的倍数进行
     while (new_length < elems_) {
       new_length *= 2;
     }
+    // 二维指针的初始化 https://stackoverflow.com/a/18273553/8449612
     LRUHandle** new_list = new LRUHandle*[new_length];
     memset(new_list, 0, sizeof(new_list[0]) * new_length);
     uint32_t count = 0;
@@ -192,6 +203,7 @@ class LRUCache {
   // Entries are in use by clients, and have refs >= 2 and in_cache==true.
   LRUHandle in_use_ GUARDED_BY(mutex_);
 
+  // 哈希表
   HandleTable table_ GUARDED_BY(mutex_);
 };
 
@@ -269,7 +281,7 @@ Cache::Handle* LRUCache::Insert(const Slice& key, uint32_t hash, void* value,
                                 void (*deleter)(const Slice& key,
                                                 void* value)) {
   MutexLock l(&mutex_);
-
+  // -1操作减去一个字节的预留空间, 由key.size()决定实际空间大小
   LRUHandle* e =
       reinterpret_cast<LRUHandle*>(malloc(sizeof(LRUHandle) - 1 + key.size()));
   e->value = value;
@@ -291,6 +303,7 @@ Cache::Handle* LRUCache::Insert(const Slice& key, uint32_t hash, void* value,
     // next is read by key() in an assert, so it must be initialized
     e->next = nullptr;
   }
+  // 容量不够, 需对lru_中的条目淘汰
   while (usage_ > capacity_ && lru_.next != &lru_) {
     LRUHandle* old = lru_.next;
     assert(old->refs == 1);
@@ -327,6 +340,7 @@ void LRUCache::Prune() {
     LRUHandle* e = lru_.next;
     assert(e->refs == 1);
     bool erased = FinishErase(table_.Remove(e->key(), e->hash));
+    // https://stackoverflow.com/questions/777261/avoiding-unused-variables-warnings-when-using-assert-in-a-release-build
     if (!erased) {  // to avoid unused variable when compiled NDEBUG
       assert(erased);
     }
@@ -336,10 +350,12 @@ void LRUCache::Prune() {
 static const int kNumShardBits = 4;
 static const int kNumShards = 1 << kNumShardBits;
 
+// ShardedLRUCache包含16个LRUCache, 由HASH值的高四位决定具体在哪一个LRUCache, 目的提升并发访问
 class ShardedLRUCache : public Cache {
  private:
   LRUCache shard_[kNumShards];
   port::Mutex id_mutex_;
+  // Q: last_id_的作用是?
   uint64_t last_id_;
 
   static inline uint32_t HashSlice(const Slice& s) {
@@ -350,6 +366,8 @@ class ShardedLRUCache : public Cache {
 
  public:
   explicit ShardedLRUCache(size_t capacity) : last_id_(0) {
+    // Q: 计算每个shard分到的容量为什么需要对kNumShards-1?
+    // A: 确保per_shard之和 >= capacity
     const size_t per_shard = (capacity + (kNumShards - 1)) / kNumShards;
     for (int s = 0; s < kNumShards; s++) {
       shard_[s].SetCapacity(per_shard);
