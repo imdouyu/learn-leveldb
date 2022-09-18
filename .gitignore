@@ -6,3 +6,6 @@
 # Build directory.
 build/
 out/
+
+graph.drawio
+compile_commands.json
